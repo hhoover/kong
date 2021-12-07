@@ -30,10 +30,13 @@ for _, strategy in helpers.each_strategy() do
     local dns_hostsfile
     local reports_server
 
-    local reports_send_ping = function()
+    local reports_send_ping = function(opts)
       ngx.sleep(0.01) -- hand over the CPU so other threads can do work (processing the sent data)
       local admin_client = helpers.admin_client()
-      local res = admin_client:post("/reports/send-ping")
+      local opts = opts or nil
+      local port = opts.port or nil
+
+      local res = admin_client:post("/reports/send-ping" .. (port and "?port=" .. port or ""))
       assert.response(res).has_status(200)
       admin_client:close()
     end
@@ -51,8 +54,8 @@ for _, strategy in helpers.each_strategy() do
     end
 
     lazy_setup(function()
-      dns_hostsfile = assert(os.tmpname())
-      local fd = assert(io.open(dns_hostsfile, "w"))
+      dns_hostsfile = assert(os.tmpname() .. ".hosts")
+      local fd = assert(io.open(dns_hostsfile, "wb"))
       assert(fd:write("127.0.0.1 " .. constants.REPORTS.ADDRESS))
       assert(fd:close())
 
@@ -189,8 +192,9 @@ for _, strategy in helpers.each_strategy() do
       os.remove(dns_hostsfile)
     end)
 
+
     before_each(function()
-      reports_server = helpers.mock_reports_server()
+      reports_server = helpers.mock_reports_server({port=constants.REPORTS.STATS_PORT})
     end)
 
     after_each(function()
@@ -204,7 +208,7 @@ for _, strategy in helpers.each_strategy() do
       })
       assert.response(res).has_status(200)
 
-      reports_send_ping()
+      reports_send_ping({port=constants.REPORTS.STATS_PORT})
 
       local _, reports_data = assert(reports_server:stop())
       assert.same(1, #reports_data)
@@ -228,7 +232,7 @@ for _, strategy in helpers.each_strategy() do
       })
       assert.response(res).has_status(200)
 
-      reports_send_ping()
+      reports_send_ping({port=constants.REPORTS.STATS_PORT})
 
       local _, reports_data = assert(reports_server:stop())
       assert.same(1, #reports_data)
@@ -254,7 +258,7 @@ for _, strategy in helpers.each_strategy() do
       assert.equal(200, tonumber(headers:get(":status")))
       assert.is_not_nil(body)
 
-      reports_send_ping()
+      reports_send_ping({port=constants.REPORTS.STATS_PORT})
 
       local _, reports_data = assert(reports_server:stop())
       assert.same(1, #reports_data)
@@ -278,7 +282,7 @@ for _, strategy in helpers.each_strategy() do
       assert.equal(200, tonumber(headers:get(":status")))
       assert.is_not_nil(body)
 
-      reports_send_ping()
+      reports_send_ping({port=constants.REPORTS.STATS_PORT})
 
       local _, reports_data = assert(reports_server:stop())
       assert.same(1, #reports_data)
@@ -303,7 +307,7 @@ for _, strategy in helpers.each_strategy() do
         },
       }))
 
-      reports_send_ping()
+      reports_send_ping({port=constants.REPORTS.STATS_PORT})
 
       local _, reports_data = assert(reports_server:stop())
       assert.same(1, #reports_data)
@@ -327,7 +331,7 @@ for _, strategy in helpers.each_strategy() do
         },
       })
 
-      reports_send_ping()
+      reports_send_ping({port=constants.REPORTS.STATS_PORT})
 
       local _, reports_data = assert(reports_server:stop())
       assert.same(1, #reports_data)
@@ -346,7 +350,7 @@ for _, strategy in helpers.each_strategy() do
       websocket_send_text_and_get_echo("ws://" .. helpers.get_proxy_ip(false) ..
                                        ":" .. helpers.get_proxy_port(false) .. "/up-ws")
 
-      reports_send_ping()
+      reports_send_ping({port=constants.REPORTS.STATS_PORT})
 
       local _, reports_data = assert(reports_server:stop())
       assert.same(1, #reports_data)
@@ -365,7 +369,7 @@ for _, strategy in helpers.each_strategy() do
       websocket_send_text_and_get_echo("wss://" .. helpers.get_proxy_ip(true) ..
                                        ":" .. helpers.get_proxy_port(true) .. "/up-ws")
 
-      reports_send_ping()
+      reports_send_ping({port=constants.REPORTS.STATS_PORT})
 
       local _, reports_data = assert(reports_server:stop())
       assert.same(1, #reports_data)
