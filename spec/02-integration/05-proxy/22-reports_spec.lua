@@ -384,7 +384,7 @@ for _, strategy in helpers.each_strategy() do
       assert.match("wss_reqs=1", reports_data[1])
     end)
 
-    it("#stream reports tcp streams", function()
+    pending("#stream reports tcp streams", function()
       local tcp = ngx.socket.tcp()
       assert(tcp:connect(helpers.get_proxy_ip(false), 19000))
 
@@ -404,7 +404,7 @@ for _, strategy in helpers.each_strategy() do
       assert.match("tls_streams=0", reports_data[1])
     end)
 
-    it("#stream reports tls streams", function()
+    pending("#stream reports tls streams", function()
       local tcp = ngx.socket.tcp()
 
       assert(tcp:connect(helpers.get_proxy_ip(true), 19443))
